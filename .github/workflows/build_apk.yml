@@ -13,6 +13,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
 
     steps:
       - name: Check out repository
@@ -57,3 +59,14 @@ jobs:
         with:
           name: BestIntraday-Standalone-APK
           path: build_stage/bin/*.apk
+
+      - name: Release APK to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.1
+          name: "Best Intraday Android App v1.0.1"
+          body: "Standalone Native Android APK with Android timezone and SSL crash fixes. Download BestIntraday.apk directly."
+          files: build_stage/bin/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

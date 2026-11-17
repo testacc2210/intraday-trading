@@ -8,13 +8,17 @@ import time as time_module
 from datetime import datetime, time
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Callable, TypeVar
-from zoneinfo import ZoneInfo
+
+try:
+    from zoneinfo import ZoneInfo
+    IST = ZoneInfo("Asia/Kolkata")
+except Exception:
+    from datetime import timezone, timedelta
+    IST = timezone(timedelta(hours=5, minutes=30), name="IST")
 
 import requests
 
 from nse_intraday.config import TradingConfig
-
-IST = ZoneInfo("Asia/Kolkata")
 logger = logging.getLogger(__name__)
 
 F = TypeVar("F", bound=Callable[..., Any])

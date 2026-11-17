@@ -272,4 +272,15 @@ class BestIntradayApp(App):
 
 
 if __name__ == "__main__":
-    BestIntradayApp().run()
+    try:
+        BestIntradayApp().run()
+    except Exception as exc:
+        import traceback
+        from kivy.base import runTouchApp
+        from kivy.uix.label import Label
+        from kivy.uix.scrollview import ScrollView
+        tb = traceback.format_exc()
+        sv = ScrollView()
+        lbl = Label(text=f"Startup Error:\n\n{tb}", font_size="13sp")
+        sv.add_widget(lbl)
+        runTouchApp(sv)
