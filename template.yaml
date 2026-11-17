@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Stateless NSE Intraday Algorithmic Trading System deployed in Mumbai (ap-south-1).
+  Triggered every 5 minutes during NSE market hours (09:15-15:25 IST, Mon-Fri).
+
+Parameters:
+  PaperTrading:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+  TradingCapital:
+    Type: String
+    Default: "50000"
+  TelegramBotToken:
+    Type: String
+    NoEcho: true
+    Default: ""
+  TelegramChatId:
+    Type: String
+    Default: ""
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: python3.12
+
+Resources:
+  TradingStateBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireOldDailyState
+            Status: Enabled
+            ExpirationInDays: 90
+
+  NseIntradayFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: lambda_handler.lambda_handler
+      Description: Single-pass stateless 5m ORB-15 + VWAP NSE Intraday Engine
+      Environment:
+        Variables:
+          PAPER_TRADING: !Ref PaperTrading
+          TRADING_CAPITAL: !Ref TradingCapital
+          MAX_RISK_PCT: "0.01"
+          RISK_REWARD_RATIO: "2.0"
+          MAX_TRADES_PER_DAY: "1"
+          MAX_LEVERAGE: "1.0"
+          SLIPPAGE_BPS: "5.0"
+          STATE_BACKEND: "s3"
+          S3_STATE_BUCKET: !Ref TradingStateBucket
+          S3_STATE_PREFIX: "state"
+          TELEGRAM_BOT_TOKEN: !Ref TelegramBotToken
+          TELEGRAM_CHAT_ID: !Ref TelegramChatId
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref TradingStateBucket
+      Events:
+        # 09:15 IST = 03:45 UTC | 15:25 IST = 09:55 UTC (Mon-Fri)
+        MarketWindowEarly:
+          Type: Schedule
+          Properties:
+            Schedule: "cron(45-59/5 3 ? * MON-FRI *)"
+            Description: "09:15 to 09:29 IST"
+        MarketWindowMain:
+          Type: Schedule
+          Properties:
+            Schedule: "cron(0/5 4-9 ? * MON-FRI *)"
+            Description: "09:30 to 15:25 IST"
+
+Outputs:
+  LambdaFunctionArn:
+    Value: !GetAtt NseIntradayFunction.Arn
+  StateBucketName:
+    Value: !Ref TradingStateBucket
