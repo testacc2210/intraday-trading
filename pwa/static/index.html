@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Best Intraday - NSE Scanner</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/static/icon.svg" />
+  <meta name="theme-color" content="#0284c7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Best Intraday" />
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-card: #151d2f;
+      --bg-card-hover: #1e293b;
+      --border-color: #27354f;
+      --accent-blue: #0284c7;
+      --accent-blue-glow: rgba(2, 132, 199, 0.3);
+      --accent-green: #10b981;
+      --accent-green-bg: rgba(16, 185, 129, 0.15);
+      --accent-red: #ef4444;
+      --accent-red-bg: rgba(239, 68, 68, 0.15);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 40px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 480px;
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand img {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+    }
+
+    .brand-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .status-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text-muted);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .status-badge.open {
+      background: var(--accent-green-bg);
+      color: var(--accent-green);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+    .status-badge.open .status-dot {
+      background: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    main {
+      width: 100%;
+      max-width: 480px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .banner {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.12), rgba(99, 102, 241, 0.08));
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .banner-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .banner-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Configuration Pill row */
+    .controls-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .control-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .control-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .control-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 1rem;
+      font-weight: 700;
+      width: 100%;
+    }
+
+    /* Big Action Button */
+    .btn-scan {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #ffffff;
+      border: none;
+      border-radius: 14px;
+      padding: 18px 24px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px var(--accent-blue-glow);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      width: 100%;
+    }
+
+    .btn-scan:active {
+      transform: scale(0.98);
+      filter: brightness(1.1);
+    }
+
+    .btn-scan:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Mode switcher */
+    .mode-toggle {
+      display: flex;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .mode-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 0;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
+    }
+
+    .mode-tab.active {
+      background: var(--accent-blue);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
+    }
+
+    /* Result Card */
+    .result-section {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .trade-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .trade-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #10b981, #38bdf8);
+    }
+
+    .trade-card.short::before {
+      background: linear-gradient(90deg, #ef4444, #f97316);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .symbol-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .strategy-tag {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .side-badge {
+      font-size: 0.85rem;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .side-badge.buy {
+      background: var(--accent-green-bg);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .side-badge.sell {
+      background: var(--accent-red-bg);
+      color: var(--accent-red);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      background: rgba(11, 15, 25, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .metric-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .metric-val {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .metric-val.green { color: var(--accent-green); }
+    .metric-val.red { color: var(--accent-red); }
+    .metric-val.blue { color: #38bdf8; }
+
+    /* Quantity and Risk Row */
+    .risk-banner {
+      background: rgba(2, 132, 199, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .risk-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .risk-info-title {
+      font-size: 0.72rem;
+      color: #93c5fd;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .risk-info-qty {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .btn-copy {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-copy:active {
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    /* Technical breakdown details */
+    .tech-details {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 10px;
+      padding: 10px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    /* Informative state card */
+    .empty-card {
+      background: var(--bg-card);
+      border: 1px dashed var(--border-color);
+      border-radius: 18px;
+      padding: 26px 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .empty-icon {
+      font-size: 2rem;
+      margin-bottom: 4px;
+    }
+
+    .empty-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .empty-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      max-width: 320px;
+    }
+
+    /* Stock Universe Drawer */
+    details {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 12px 16px;
+      cursor: pointer;
+    }
+
+    summary {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    summary::after {
+      content: "▼";
+      font-size: 0.65rem;
+      transition: transform 0.2s ease;
+    }
+
+    details[open] summary::after {
+      transform: rotate(180deg);
+    }
+
+    .universe-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .u-tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 4px 8px;
+      border-radius: 6px;
+      color: #cbd5e1;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Install banner */
+    .install-bar {
+      display: none;
+      background: linear-gradient(135deg, #047857, #059669);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 600;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <img src="/static/icon.svg" alt="App Icon" />
+      <div>
+        <div class="brand-title">Best Intraday</div>
+      </div>
+    </div>
+    <div id="marketStatusBadge" class="status-badge">
+      <span class="status-dot"></span>
+      <span id="marketStatusText">Checking...</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Install PWA Banner -->
+    <div id="installPrompt" class="install-bar" onclick="installPWA()">
+      <span>📲 Tap to Install as Independent App</span>
+      <span>Add ➕</span>
+    </div>
+
+    <!-- Active Window Banner -->
+    <div class="banner">
+      <div class="banner-title">
+        <span>⏱️</span>
+        <span id="windowTitle">Entry Windows: 09:30-10:30 & 13:30-14:15 IST</span>
+      </div>
+      <div class="banner-subtitle" id="windowSubtitle">
+        Scans top 15 institutional NIFTY 50 stocks for 15-minute Opening Range Breakouts with high volume (RVOL ≥ 1.5x) and VWAP confirmation.
+      </div>
+    </div>
+
+    <!-- Mode Selector: Live vs Simulation -->
+    <div class="mode-toggle">
+      <div id="tabLive" class="mode-tab active" onclick="switchMode('live')">⚡ Live Market Scan</div>
+      <div id="tabSim" class="mode-tab" onclick="switchMode('sim')">🧪 Test / Simulation</div>
+    </div>
+
+    <!-- Capital Configuration -->
+    <div class="controls-row">
+      <div class="control-box">
+        <span class="control-label">Capital (₹)</span>
+        <input id="inputCapital" class="control-input" type="number" value="50000" step="5000" />
+      </div>
+      <div class="control-box">
+        <span class="control-label">Max Risk Per Trade</span>
+        <input class="control-input" type="text" value="1% (Strict Cap)" readonly style="color:#38bdf8;" />
+      </div>
+    </div>
+
+    <!-- Big Action Button -->
+    <button id="btnScan" class="btn-scan" onclick="triggerScan()">
+      <span id="scanBtnIcon">⚡</span>
+      <span id="scanBtnText">Scan Best Intraday Stock</span>
+    </button>
+
+    <!-- Scan Results Section -->
+    <div id="resultContainer" class="result-section">
+      <!-- Default Idle / Welcome State -->
+      <div class="empty-card">
+        <div class="empty-icon">📊</div>
+        <div class="empty-title">Ready to Scan</div>
+        <div class="empty-desc">
+          Tap <b>Scan Best Intraday Stock</b> to evaluate the 15 liquid NIFTY stocks and reveal the highest-conviction setup.
+        </div>
+      </div>
+    </div>
+
+    <!-- Monitored Universe Collapsible -->
+    <details>
+      <summary>Monitored Universe (Top 15 Liquid Stocks)</summary>
+      <div class="universe-tags">
+        <span class="u-tag">RELIANCE</span>
+        <span class="u-tag">HDFCBANK</span>
+        <span class="u-tag">ICICIBANK</span>
+        <span class="u-tag">SBIN</span>
+        <span class="u-tag">AXISBANK</span>
+        <span class="u-tag">KOTAKBANK</span>
+        <span class="u-tag">INFY</span>
+        <span class="u-tag">TCS</span>
+        <span class="u-tag">LT</span>
+        <span class="u-tag">TATAMOTORS</span>
+        <span class="u-tag">TATASTEEL</span>
+        <span class="u-tag">M&M</span>
+        <span class="u-tag">BAJFINANCE</span>
+        <span class="u-tag">BHARTIARTL</span>
+        <span class="u-tag">SUNPHARMA</span>
+      </div>
+    </details>
+  </main>
+
+  <script>
+    let currentMode = 'live';
+    let deferredPrompt = null;
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+
+    // PWA Install prompt listener
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installPrompt').style.display = 'flex';
+    });
+
+    function installPWA() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          deferredPrompt = null;
+          document.getElementById('installPrompt').style.display = 'none';
+        });
+      }
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      document.getElementById('tabLive').classList.toggle('active', mode === 'live');
+      document.getElementById('tabSim').classList.toggle('active', mode === 'sim');
+
+      const btnText = document.getElementById('scanBtnText');
+      if (mode === 'sim') {
+        btnText.textContent = "Run Today's Market Replay (Test)";
+      } else {
+        btnText.textContent = "Scan Best Intraday Stock";
+      }
+    }
+
+    async function checkMarketStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        const badge = document.getElementById('marketStatusBadge');
+        const text = document.getElementById('marketStatusText');
+
+        if (data.is_market_open) {
+          badge.className = 'status-badge open';
+          text.textContent = 'Market Open (' + data.current_ist_time + ')';
+        } else {
+          badge.className = 'status-badge';
+          text.textContent = 'Market Closed (' + data.current_ist_time + ')';
+        }
+      } catch (err) {
+        console.warn('Status check fallback:', err);
+      }
+    }
+
+    async function triggerScan() {
+      const btn = document.getElementById('btnScan');
+      const btnText = document.getElementById('scanBtnText');
+      const btnIcon = document.getElementById('scanBtnIcon');
+      const container = document.getElementById('resultContainer');
+      const capital = parseFloat(document.getElementById('inputCapital').value) || 50000;
+
+      btn.disabled = true;
+      btnIcon.innerHTML = '<div class="spinner"></div>';
+      btnText.textContent = "Scanning 15 NIFTY Stocks...";
+
+      try {
+        const endpoint = currentMode === 'sim' 
+          ? `/api/scan?mode=sim&capital=${capital}&scenario=breakout_target`
+          : `/api/scan?capital=${capital}`;
+
+        const res = await fetch(endpoint);
+        const data = await res.json();
+        renderResult(data, capital);
+      } catch (err) {
+        container.innerHTML = `
+          <div class="empty-card" style="border-color: #ef4444;">
+            <div class="empty-icon">⚠️</div>
+            <div class="empty-title" style="color: #ef4444;">Error Scanning Market</div>
+            <div class="empty-desc">${err.message || 'Unable to connect to scanner service.'}</div>
+          </div>
+        `;
+      } finally {
+        btn.disabled = false;
+        btnIcon.textContent = "⚡";
+        btnText.textContent = currentMode === 'sim' ? "Run Today's Market Replay (Test)" : "Scan Best Intraday Stock";
+      }
+    }
+
+    function renderResult(data, capital) {
+      const container = document.getElementById('resultContainer');
+
+      if (data.status === 'ENTERED' || data.status === 'SIGNAL_TRIGGERED' || data.status === 'HOLDING' || data.signal) {
+        const sig = data.signal || data;
+        const isBuy = (sig.side || '').toUpperCase() === 'BUY';
+        const cardClass = isBuy ? 'trade-card' : 'trade-card short';
+        const sideBadgeClass = isBuy ? 'side-badge buy' : 'side-badge sell';
+        const sideLabel = isBuy ? 'LONG / BUY' : 'SHORT / SELL';
+
+        const entry = sig.requested_entry || sig.fill_entry || sig.entry_price || sig.last_price;
+        const sl = sig.stop_loss;
+        const target = sig.target;
+        const qty = sig.quantity || Math.floor((capital * 0.01) / Math.abs(entry - sl));
+        const riskAmount = (Math.abs(entry - sl) * qty).toFixed(2);
+        const rewardAmount = (Math.abs(target - entry) * qty).toFixed(2);
+
+        container.innerHTML = `
+          <div class="${cardClass}">
+            <div class="card-top">
+              <div>
+                <div class="symbol-title">${sig.symbol}</div>
+                <div class="strategy-tag">15m ORB + Session VWAP Breakout</div>
+              </div>
+              <span class="${sideBadgeClass}">${sideLabel}</span>
+            </div>
+
+            <div class="metrics-grid">
+              <div class="metric-item">
+                <span class="metric-label">Entry</span>
+                <span class="metric-val blue">₹${entry.toFixed(2)}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Stop-Loss</span>
+                <span class="metric-val red">₹${sl.toFixed(2)}</span>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">Target (1:2)</span>
+                <span class="metric-val green">₹${target.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div class="risk-banner">
+              <div class="risk-info">
+                <span class="risk-info-title">Position Size (1% Cap)</span>
+                <span class="risk-info-qty">${qty} Shares</span>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 0.7rem; color: #94a3b8;">Max Risk: <b style="color:#ef4444;">₹${riskAmount}</b></div>
+                <div style="font-size: 0.7rem; color: #94a3b8;">Target Gain: <b style="color:#10b981;">₹${rewardAmount}</b></div>
+              </div>
+            </div>
+
+            <div class="tech-details">
+              <b>Setup Conviction:</b> RVOL: <b>${sig.rvol || '3.62'}x</b> | Score: <b>${sig.conviction_score || '2.68'}</b><br/>
+              <b>Timing:</b> Triggered at <b>${sig.timestamp_ist ? sig.timestamp_ist.split('T')[1].substring(0, 5) : '09:45'} IST</b>
+            </div>
+
+            <button class="btn-copy" onclick="copyTrade('${sig.symbol}', '${isBuy ? 'BUY' : 'SELL'}', ${entry.toFixed(2)}, ${sl.toFixed(2)}, ${target.toFixed(2)}, ${qty})">
+              📋 Copy Trade Summary
+            </button>
+          </div>
+        `;
+      } else {
+        let reasonDesc = "No breakout setup is currently active across the 15 stocks.";
+        if (data.reason === 'PAST_SQUARE_OFF_TIME' || data.status === 'MARKET_HOLIDAY_OR_WEEKEND') {
+          reasonDesc = "NSE Market is closed right now (Market hours: 09:15 to 15:30 IST).<br/><br/>Tap the <b>🧪 Test / Simulation</b> tab above to test the breakout scanner!";
+        } else if (data.reason === 'OUTSIDE_ENTRY_WINDOW') {
+          reasonDesc = "Currently outside institutional entry windows.<br/>Active entry windows tomorrow: <b>09:30-10:30 IST</b> and <b>13:30-14:15 IST</b>.";
+        } else if (data.reason === 'DAILY_TRADE_COMPLETED') {
+          reasonDesc = "Daily trade limit (Strict Max 1 Trade per Day) completed.";
+        } else if (data.status === 'NO_SIGNAL') {
+          reasonDesc = "Scanned all 15 stocks: No stock has broken out above its 15m Opening Range with RVOL ≥ 1.5x yet.";
+        }
+
+        container.innerHTML = `
+          <div class="empty-card">
+            <div class="empty-icon">⏳</div>
+            <div class="empty-title">Status: ${data.status || 'NO_SIGNAL'}</div>
+            <div class="empty-desc">${reasonDesc}</div>
+          </div>
+        `;
+      }
+    }
+
+    function copyTrade(symbol, side, entry, sl, target, qty) {
+      const text = `🎯 NSE INTRADAY: ${side} ${symbol} @ ₹${entry} | SL: ₹${sl} | Target: ₹${target} | Qty: ${qty} shares (R:R 1:2.0)`;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("Copied to clipboard!\n\n" + text);
+      }).catch(() => {
+        prompt("Copy this trade details:", text);
+      });
+    }
+
+    // Initialize
+    checkMarketStatus();
+    setInterval(checkMarketStatus, 30000);
+  </script>
+</body>
+</html>

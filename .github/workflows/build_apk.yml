@@ -1,0 +1,56 @@
+name: Build Standalone Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install system build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+
+      - name: Install Buildozer & Cython
+        run: |
+          pip install --upgrade pip
+          pip install "Cython<3.0" buildozer
+
+      - name: Stage APK Source Files
+        run: |
+          mkdir -p build_stage
+          cp -r nse_intraday build_stage/
+          cp apk/main.py build_stage/
+          cp apk/buildozer.spec build_stage/
+          cd build_stage
+
+      - name: Build Android APK with Buildozer
+        run: |
+          cd build_stage
+          buildozer android debug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BestIntraday-Standalone-APK
+          path: build_stage/bin/*.apk

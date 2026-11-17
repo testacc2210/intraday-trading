@@ -1,0 +1,31 @@
+{
+  "id": "/",
+  "name": "Best Intraday - NSE Scanner",
+  "short_name": "Best Intraday",
+  "description": "Institutional 15-Minute Opening Range Breakout & VWAP Intraday Scanner for NSE Cash Equities",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0f19",
+  "theme_color": "#0284c7",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
