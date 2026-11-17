@@ -7,9 +7,12 @@ on:
       - main
       - master
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Check out repository
@@ -29,7 +32,7 @@ jobs:
       - name: Install system build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses-dev cmake libffi-dev libssl-dev
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf automake libtool libltdl-dev pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev autopoint
 
       - name: Install Buildozer & Cython
         run: |
@@ -42,19 +45,11 @@ jobs:
           cp -r nse_intraday build_stage/
           cp apk/main.py build_stage/
           cp apk/buildozer.spec build_stage/
-          cd build_stage
-
-      - name: Pre-accept Android SDK Licenses
-        run: |
-          mkdir -p ~/.android
-          touch ~/.android/repositories.cfg
-          if command -v sdkmanager >/dev/null 2>&1; then
-            yes | sdkmanager --licenses || true
-          fi
 
       - name: Build Android APK with Buildozer
         run: |
           cd build_stage
+          export ACLOCAL_PATH=/usr/share/aclocal
           yes | buildozer android debug
 
       - name: Upload APK Artifact
