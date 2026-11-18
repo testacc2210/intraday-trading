@@ -1,7 +1,6 @@
 """
 Standalone Native Android Mobile App for NSE Best Intraday Algorithm.
-100% Self-Contained: Zero external module dependencies.
-Runs completely on the Android device with no laptop or cloud server required.
+100% Self-Contained. Mobile-optimized with DP/SP scaling and clean UI.
 """
 
 import os
@@ -225,26 +224,32 @@ def evaluate_symbol(symbol: str, candles: list[Candle], capital: float = 50000.0
     }
 
 
-# Kivy GUI Import section (Safe)
+# Kivy GUI Import section (with proper Android DPI metrics)
 from kivy.app import App
 from kivy.clock import Clock
-from kivy.graphics import Color, RoundedRectangle
+from kivy.core.window import Window
+from kivy.graphics import Color, RoundedRectangle, Rectangle
+from kivy.metrics import dp, sp
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 
+# Set dark background on window
+Window.clearcolor = (0.05, 0.07, 0.11, 1)
+
 
 class StyledCard(BoxLayout):
-    """Custom rounded dark card."""
+    """Custom rounded dark card with responsive padding."""
 
-    def __init__(self, bg_color=(0.08, 0.11, 0.18, 1), **kwargs):
+    def __init__(self, bg_color=(0.11, 0.15, 0.22, 1), radius_dp=14, **kwargs):
         super().__init__(**kwargs)
         self.bg_color = bg_color
+        self.radius_dp = radius_dp
         with self.canvas.before:
             Color(*self.bg_color)
-            self.rect = RoundedRectangle(size=self.size, pos=self.pos, radius=[16])
+            self.rect = RoundedRectangle(size=self.size, pos=self.pos, radius=[dp(self.radius_dp)])
         self.bind(size=self._update_rect, pos=self._update_rect)
 
     def _update_rect(self, *args):
@@ -258,22 +263,24 @@ class BestIntradayApp(App):
     def build(self):
         self.title = "Best Intraday - NSE Scanner"
 
-        root = BoxLayout(orientation="vertical", padding=14, spacing=12)
+        # Main vertical container with generous padding
+        root = BoxLayout(orientation="vertical", padding=[dp(16), dp(18)], spacing=dp(14))
 
-        # Header bar
+        # Top Header Bar
         header = StyledCard(
             orientation="horizontal",
             size_hint=(1, None),
-            height=60,
-            padding=[16, 10],
-            bg_color=(0.06, 0.09, 0.15, 1),
+            height=dp(64),
+            padding=[dp(16), dp(10)],
+            bg_color=(0.07, 0.10, 0.16, 1),
+            radius_dp=12,
         )
         title_lbl = Label(
-            text="⚡ [b]Best Intraday[/b] (NSE)",
+            text="[b]BEST INTRADAY[/b]  [color=38bdf8](NSE CASH)[/color]",
             markup=True,
-            font_size="20sp",
-            color=(0.22, 0.74, 0.97, 1),
-            halign="left",
+            font_size=sp(19),
+            color=(0.95, 0.97, 1.0, 1),
+            halign="center",
             valign="middle",
         )
         title_lbl.bind(size=title_lbl.setter("text_size"))
@@ -284,36 +291,42 @@ class BestIntradayApp(App):
         cap_card = StyledCard(
             orientation="horizontal",
             size_hint=(1, None),
-            height=54,
-            padding=[16, 8],
-            spacing=10,
-            bg_color=(0.09, 0.13, 0.21, 1),
+            height=dp(56),
+            padding=[dp(16), dp(8)],
+            spacing=dp(10),
+            bg_color=(0.10, 0.14, 0.21, 1),
+            radius_dp=10,
         )
         cap_lbl = Label(
-            text="Capital (₹):",
-            font_size="15sp",
-            size_hint=(0.4, 1),
-            color=(0.6, 0.7, 0.8, 1),
+            text="Capital (INR):",
+            font_size=sp(15),
+            bold=True,
+            size_hint=(0.42, 1),
+            color=(0.58, 0.65, 0.75, 1),
+            halign="left",
+            valign="middle",
         )
+        cap_lbl.bind(size=cap_lbl.setter("text_size"))
         self.cap_input = TextInput(
             text="50000",
             multiline=False,
             input_filter="float",
-            size_hint=(0.6, 1),
-            background_color=(0.12, 0.17, 0.26, 1),
+            size_hint=(0.58, 1),
+            background_color=(0.07, 0.10, 0.16, 1),
             foreground_color=(1, 1, 1, 1),
-            font_size="16sp",
+            font_size=sp(17),
+            padding=[dp(10), dp(10)],
         )
         cap_card.add_widget(cap_lbl)
         cap_card.add_widget(self.cap_input)
         root.add_widget(cap_card)
 
-        # Action Buttons Layout
-        btn_box = BoxLayout(orientation="horizontal", size_hint=(1, None), height=56, spacing=8)
+        # Action Buttons Layout (Generous touch target height)
+        btn_box = BoxLayout(orientation="horizontal", size_hint=(1, None), height=dp(56), spacing=dp(10))
 
         self.btn_scan = Button(
-            text="⚡ Scan Live Market",
-            font_size="16sp",
+            text="SCAN LIVE MARKET",
+            font_size=sp(15),
             bold=True,
             background_normal="",
             background_color=(0.01, 0.52, 0.78, 1),
@@ -321,12 +334,12 @@ class BestIntradayApp(App):
         self.btn_scan.bind(on_press=lambda x: self.start_scan(mode="live"))
 
         self.btn_sim = Button(
-            text="🧪 Test Replay",
-            font_size="15sp",
+            text="TEST REPLAY",
+            font_size=sp(14),
             bold=True,
-            size_hint=(0.4, 1),
+            size_hint=(0.42, 1),
             background_normal="",
-            background_color=(0.2, 0.28, 0.4, 1),
+            background_color=(0.20, 0.26, 0.35, 1),
         )
         self.btn_sim.bind(on_press=lambda x: self.start_scan(mode="sim"))
 
@@ -334,40 +347,50 @@ class BestIntradayApp(App):
         btn_box.add_widget(self.btn_sim)
         root.add_widget(btn_box)
 
-        # Result ScrollView
-        scroll = ScrollView(size_hint=(1, 1))
-        self.result_box = StyledCard(
+        # Main Result Area (Fills the rest of the mobile screen)
+        scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
+        self.result_card = StyledCard(
             orientation="vertical",
             size_hint=(1, None),
-            padding=16,
-            spacing=10,
-            bg_color=(0.07, 0.1, 0.16, 1),
+            padding=[dp(20), dp(22)],
+            spacing=dp(12),
+            bg_color=(0.09, 0.13, 0.20, 1),
+            radius_dp=16,
         )
-        self.result_box.bind(minimum_height=self.result_box.setter("height"))
+        self.result_card.bind(minimum_height=self.result_card.setter("height"))
 
         self.status_label = Label(
-            text="Tap [b]Scan Live Market[/b] (09:35 AM IST)\nor [b]Test Replay[/b] for demo preview.",
+            text=(
+                "[size=18sp][b]Ready to Scan[/b][/size]\n\n"
+                "[color=94a3b8]Tap [b]SCAN LIVE MARKET[/b] at 09:35 AM IST\n"
+                "or tap [b]TEST REPLAY[/b] to see how\n"
+                "a breakout alert looks.[/color]\n\n"
+                "[color=64748b]Monitors top 15 NIFTY liquid stocks with\n"
+                "Session VWAP and strict 1% risk cap.[/color]"
+            ),
             markup=True,
-            font_size="16sp",
-            color=(0.8, 0.85, 0.9, 1),
+            font_size=sp(15),
+            color=(0.9, 0.94, 1.0, 1),
             halign="center",
             valign="middle",
             size_hint=(1, None),
-            height=120,
+            height=dp(280),
         )
-        self.status_label.bind(size=self.status_label.setter("text_size"))
-        self.result_box.add_widget(self.status_label)
-        scroll.add_widget(self.result_box)
+        self.status_label.bind(width=lambda s, w: setattr(s, "text_size", (w - dp(20), None)))
+        self.status_label.bind(texture_size=lambda s, ts: setattr(s, "height", max(ts[1] + dp(30), dp(200))))
+        self.result_card.add_widget(self.status_label)
+        scroll.add_widget(self.result_card)
         root.add_widget(scroll)
 
-        # Copy button
+        # Bottom Copy Button
         self.btn_copy = Button(
-            text="📋 Copy Trade Summary",
-            font_size="15sp",
+            text="COPY TRADE DETAILS",
+            font_size=sp(15),
+            bold=True,
             size_hint=(1, None),
-            height=48,
+            height=dp(52),
             background_normal="",
-            background_color=(0.1, 0.65, 0.45, 1),
+            background_color=(0.05, 0.65, 0.42, 1),
             opacity=0,
             disabled=True,
         )
@@ -380,7 +403,7 @@ class BestIntradayApp(App):
     def start_scan(self, mode="live"):
         self.btn_scan.disabled = True
         self.btn_sim.disabled = True
-        self.status_label.text = "🔍 Scanning 15 Liquid NIFTY Stocks..."
+        self.status_label.text = "[size=18sp][b]Scanning 15 NIFTY Stocks...[/b][/size]\n\n[color=94a3b8]Fetching live 5m candles from NSE...[/color]"
         self.btn_copy.opacity = 0
         self.btn_copy.disabled = True
 
@@ -407,6 +430,8 @@ class BestIntradayApp(App):
                 "gain_amount": round((1314.50 - 1300.30) * max(1, int((capital * 0.01) // (1300.30 - 1293.20))), 2),
                 "rvol": 3.62,
                 "vwap": 1294.04,
+                "orh": 1295.15,
+                "orl": 1287.40,
                 "time": "09:45:00 IST",
             }
             Clock.schedule_once(lambda dt: self._update_ui(demo, capital), 0)
@@ -456,67 +481,76 @@ class BestIntradayApp(App):
             gain = res.get("gain_amount", 0.0)
             rvol = res.get("rvol", 1.5)
             vwap = res.get("vwap", 0.0)
+            orh = res.get("orh", 0.0)
+            orl = res.get("orl", 0.0)
             t_time = res.get("time", "")
 
             side_color = "[color=10b981]" if side == "BUY" else "[color=ef4444]"
+            side_badge = "LONG (BUY)" if side == "BUY" else "SHORT (SELL)"
+
             text = (
-                f"[size=22sp][b]{sym}[/b][/size]  {side_color}[b]({side})[/b][/color]\n"
-                f"[color=94a3b8]Setup: 15m ORB + Session VWAP[/color]\n\n"
-                f"[b]Entry:[/b] ₹{entry:.2f}\n"
-                f"[b]Stop-Loss:[/b] ₹{sl:.2f}\n"
-                f"[b]Target (1:2):[/b] ₹{tgt:.2f}\n"
-                f"[b]Quantity:[/b] {qty} shares\n"
-                f"[b]Max Risk (1%):[/b] ₹{risk:.2f} | [b]Target Gain:[/b] ₹{gain:.2f}\n"
-                f"[color=60a5fa]RVOL: {rvol}x | VWAP: ₹{vwap:.2f} | Time: {t_time}[/color]"
+                f"[size=24sp][b]{sym}[/b][/size]  {side_color}[b]{side_badge}[/b][/color]\n"
+                f"[color=94a3b8]Setup: 15m ORB + Session VWAP Breakout[/color]\n\n"
+                f"[size=17sp][b]Entry Price:[/b]  [color=38bdf8]₹{entry:.2f}[/color][/size]\n"
+                f"[size=17sp][b]Stop-Loss:[/b]    [color=ef4444]₹{sl:.2f}[/color][/size]\n"
+                f"[size=17sp][b]Target (1:2):[/b] [color=10b981]₹{tgt:.2f}[/color][/size]\n\n"
+                f"[b]Position Size:[/b] {qty} Shares\n"
+                f"[color=94a3b8]Max Risk (1%): ₹{risk:.2f}  |  Target Gain: ₹{gain:.2f}[/color]\n\n"
+                f"[color=64748b]RVOL: {rvol}x  |  VWAP: ₹{vwap:.2f}  |  Time: {t_time}\n"
+                f"Opening Range: [₹{orl:.2f} - ₹{orh:.2f}][/color]"
             )
             self.last_trade_text = (
                 f"MIS {side} {sym} @ ₹{entry:.2f} | SL: ₹{sl:.2f} | "
                 f"Target: ₹{tgt:.2f} | Qty: {qty} shares"
             )
             self.status_label.text = text
-            self.status_label.height = 220
             self.btn_copy.opacity = 1
             self.btn_copy.disabled = False
         else:
             reason = res.get("reason", "NO_SIGNAL")
             if reason == "BEFORE_0930":
                 msg = (
-                    "⏱️ [b]Opening Range Formation (09:15 - 09:30)[/b]\n\n"
-                    "The first 3 candles are forming. Please scan at [b]09:35 AM IST[/b]."
+                    "[size=20sp][b]Opening Range In Progress[/b][/size]\n\n"
+                    "[color=38bdf8]Time: 09:15 - 09:30 AM IST[/color]\n\n"
+                    "The first three 5-minute candles are forming to establish "
+                    "today's high and low benchmarks.\n\n"
+                    "[b]Please tap SCAN at 09:35 AM IST[/b]\n"
+                    "to reveal the first confirmed breakout."
                 )
             elif reason == "PAST_SQUARE_OFF_TIME":
                 msg = (
-                    "⏳ [b]Market Closed[/b] (Past 15:10 IST)\n\n"
-                    "Live scanning operates between 09:30-10:30 & 13:30-14:15 IST.\n\n"
-                    "Tap [b]Test Replay[/b] to preview a breakout signal!"
+                    "[size=20sp][b]Market Closed[/b][/size]\n\n"
+                    "Past 15:10 IST hard square-off cutoff.\n\n"
+                    "Tap [b]TEST REPLAY[/b] to preview how a breakout card looks."
                 )
             elif reason == "OUTSIDE_ENTRY_WINDOW":
                 msg = (
-                    "⏱️ [b]Outside Entry Window[/b]\n\n"
-                    "Active windows: 09:30-10:30 & 13:30-14:15 IST."
+                    "[size=20sp][b]Outside Entry Window[/b][/size]\n\n"
+                    "Institutional windows today:\n"
+                    "- Morning: [b]09:30 - 10:30 AM IST[/b]\n"
+                    "- Afternoon: [b]01:30 - 02:15 PM IST[/b]"
                 )
             elif reason == "MARKET_HOLIDAY_OR_WEEKEND":
-                msg = "❌ [b]Today is an NSE Market Holiday or Weekend.[/b]"
+                msg = "[size=20sp][b]NSE Holiday or Weekend[/b][/size]\n\nMarket is closed today."
             else:
                 msg = (
-                    "📊 [b]No Breakout Setup Triggered[/b]\n\n"
-                    "All 15 stocks currently consolidating within their 15m Opening Range.\n"
-                    "Check again on the next 5m candle close."
+                    "[size=20sp][b]No Breakout Setup Triggered[/b][/size]\n\n"
+                    "All 15 stocks are currently consolidating within their 15m Opening Range.\n\n"
+                    "Check again on the next 5m candle close (e.g. 09:40, 09:45, 09:50)."
                 )
             self.status_label.text = msg
-            self.status_label.height = 160
 
     def copy_trade_text(self, *args):
         if self.last_trade_text:
             try:
                 from kivy.core.clipboard import Clipboard
                 Clipboard.copy(self.last_trade_text)
-                self.btn_copy.text = "✅ Copied to Clipboard!"
+                self.btn_copy.text = "COPIED TO CLIPBOARD!"
                 Clock.schedule_once(
-                    lambda dt: setattr(self.btn_copy, "text", "📋 Copy Trade Summary"), 2.5
+                    lambda dt: setattr(self.btn_copy, "text", "COPY TRADE DETAILS"), 2.5
                 )
             except Exception:
-                self.btn_copy.text = "✅ Done!"
+                self.btn_copy.text = "COPIED!"
 
 
 if __name__ == "__main__":
@@ -529,7 +563,7 @@ if __name__ == "__main__":
             from kivy.uix.scrollview import ScrollView
             tb = traceback.format_exc()
             sv = ScrollView()
-            lbl = Label(text=f"Startup Error:\n\n{tb}", font_size="13sp")
+            lbl = Label(text=f"Startup Error:\n\n{tb}", font_size=sp(14), padding=[dp(10), dp(10)])
             sv.add_widget(lbl)
             runTouchApp(sv)
         except Exception:
